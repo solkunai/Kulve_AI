@@ -17,6 +17,10 @@ import Dashboard from './Dashboard';
 import Admin from './pages/Admin';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import ComingSoon from './pages/ComingSoon';
+
+// Only these emails get full dashboard access. Everyone else sees Coming Soon.
+const ADMIN_EMAILS = ['kunaivlogsdaily@gmail.com'];
 
 function PublicLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -68,6 +72,12 @@ function ProtectedRoute({ children, requireOnboarding = true }: { children: Reac
   }
 
   if (!user) return <Navigate to="/login" replace />;
+
+  // Non-admin users see Coming Soon page
+  if (!ADMIN_EMAILS.includes(user.email || '')) {
+    return <ComingSoon />;
+  }
+
   return <>{children}</>;
 }
 
