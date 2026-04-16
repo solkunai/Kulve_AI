@@ -62,12 +62,12 @@ const StepIndicator = ({ currentStep, steps }: { currentStep: number, steps: str
 );
 
 const KulveLogo = () => (
-  <div className="flex items-center justify-center gap-2 mb-6">
+  <a href="/" className="flex items-center justify-center gap-2 mb-6">
     <div className="w-8 h-8 bg-brand-blue rounded-lg flex items-center justify-center">
       <span className="font-bold text-xl text-white">K</span>
     </div>
-    <span className="text-2xl font-bold tracking-tight text-brand-navy">Kulve</span>
-  </div>
+    <span className="text-2xl font-bold tracking-tight text-brand-navy">Kulvé</span>
+  </a>
 );
 
 // --- Main Onboarding ---
@@ -211,19 +211,11 @@ export default function Onboarding() {
       return;
     }
 
-    // If they selected a plan, redirect to Stripe checkout
+    // Save selected plan preference (payments not live yet)
     if (selectedPlan) {
-      try {
-        await subscribeToPlan(selectedPlan as 'trial' | 'starter' | 'growth' | 'scale');
-        // subscribeToPlan redirects to Stripe, so we won't reach here
-        return;
-      } catch {
-        // If Stripe fails, still go to dashboard — they can subscribe later
-        navigate('/dashboard');
-      }
-    } else {
-      navigate('/dashboard');
+      await supabase.from('profiles').update({ plan: selectedPlan }).eq('id', user.id);
     }
+    navigate('/dashboard');
   };
 
   const stepLabels = ['Plan', 'Brand Kit', 'Details', 'Dashboard'];
