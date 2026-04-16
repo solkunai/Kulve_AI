@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-brand-navy: #1a1f36;
+  --color-brand-blue: #3b6dca;
+  --color-brand-gray-light: #f8f9fb;
+  
+  --radius-brand: 8px;
+  --radius-button: 6px;
+}
+
+@layer base {
+  body {
+    @apply font-sans text-gray-900 bg-white antialiased;
+  }
+}
+
+.sidebar-active {
+  @apply bg-white/10 text-white;
+}
+
+.sidebar-inactive {
+  @apply text-gray-400 hover:text-white hover:bg-white/5;
+}
