@@ -357,8 +357,8 @@ export default function LandingPage({ onLogin }: { onLogin: () => void }) {
               answer="Absolutely. You have full control. Every piece of content generated sits in your dashboard for review. You can approve it as-is, request an AI revision, or manually edit any part of the design or text." 
             />
             <FAQItem 
-              question="What kind of businesses is Kulve for?" 
-              answer="Kulve is built specifically for local businesses like bakeries, gyms, law firms, salons, and restaurants. It's designed to handle the marketing needs of businesses that serve a specific geographic community." 
+              question="What kind of businesses is Kulvé for?"
+              answer="Kulvé works for any type of business — restaurants, dental offices, law firms, gyms, salons, real estate, retail, non-profits, construction, auto shops, and more. If you have a business, Kulvé can power your entire marketing operation."
             />
             <FAQItem 
               question="How does the outreach work? Will I get flagged as spam?" 
