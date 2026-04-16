@@ -1,8 +1,12 @@
 import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import Stripe from 'stripe';
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 dotenv.config();
 
@@ -293,6 +297,17 @@ app.post('/api/send-email', async (req, res) => {
 // ============================================================
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// ============================================================
+// SERVE FRONTEND (production only — Vite handles this in dev)
+// ============================================================
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+
+// All non-API routes serve the React app (SPA client-side routing)
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // ============================================================
