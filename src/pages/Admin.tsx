@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { Users, DollarSign, BarChart3, Zap, Mail, FileText, Image, Globe, ChevronRight, Search, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
-
 interface UserData {
   id: string;
   email: string;
@@ -26,6 +24,7 @@ export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
 
   // Dashboard state
   const [users, setUsers] = useState<UserData[]>([]);
@@ -36,14 +35,27 @@ export default function Admin() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedUserContent, setSelectedUserContent] = useState<any[]>([]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setAuthenticated(true);
-      sessionStorage.setItem('kulve_admin', 'true');
-    } else {
-      setError('Wrong password');
+    setError('');
+    setAuthLoading(true);
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.ok) {
+        setAuthenticated(true);
+        sessionStorage.setItem('kulve_admin', 'true');
+      } else {
+        setError(data?.error || 'Wrong password');
+      }
+    } catch {
+      setError('Could not reach server. Try again.');
     }
+    setAuthLoading(false);
   };
 
   // Check if already authenticated
@@ -124,8 +136,12 @@ export default function Admin() {
               autoFocus
               className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 outline-none mb-4"
             />
-            <button type="submit" className="w-full py-3 bg-brand-blue text-white rounded-lg font-semibold hover:bg-brand-blue/90 transition-colors">
-              Enter
+            <button
+              type="submit"
+              disabled={authLoading}
+              className="w-full py-3 bg-brand-blue text-white rounded-lg font-semibold hover:bg-brand-blue/90 transition-colors disabled:opacity-60"
+            >
+              {authLoading ? 'Checking…' : 'Enter'}
             </button>
           </form>
         </div>
@@ -269,8 +285,8 @@ export default function Admin() {
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                             user.plan === 'scale' ? 'bg-green-500/10 text-green-400' :
-                            user.plan === 'growth' ? 'bg-purple-500/10 text-purple-400' :
-                            user.plan === 'starter' ? 'bg-blue-500/10 text-blue-400' :
+                            user.plan === 'operator' ? 'bg-purple-500/10 text-purple-400' :
+                            user.plan === 'basic' ? 'bg-blue-500/10 text-blue-400' :
                             user.plan === 'trial' ? 'bg-amber-500/10 text-amber-400' :
                             'bg-gray-500/10 text-gray-400'
                           }`}>

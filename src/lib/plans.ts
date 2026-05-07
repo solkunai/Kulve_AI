@@ -1,4 +1,4 @@
-export type PlanType = 'free' | 'trial' | 'starter' | 'growth' | 'scale';
+export type PlanType = 'free' | 'trial' | 'basic' | 'operator' | 'scale';
 
 export interface PlanLimits {
   name: string;
@@ -23,42 +23,42 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     miniPlan: false,
   },
   trial: {
-    name: 'Trial',
-    price: 10,
+    name: '7-day Trial',
+    price: 0,
     marketingPlans: 1, // mini plan only
     graphics: 2,
     socialPosts: 1,
-    outreachEmails: 0,
+    outreachEmails: 50,
     newsletters: 0,
     miniPlan: true,
   },
-  starter: {
-    name: 'Starter',
-    price: 250,
-    marketingPlans: 1,
+  basic: {
+    name: 'Basic',
+    price: 10,
+    marketingPlans: 3,
     graphics: 5,
     socialPosts: 5,
-    outreachEmails: 500,
-    newsletters: 0,
+    outreachEmails: 200,
+    newsletters: 1,
     miniPlan: false,
   },
-  growth: {
-    name: 'Growth',
-    price: 500,
-    marketingPlans: 1,
+  operator: {
+    name: 'Operator',
+    price: 89,
+    marketingPlans: 30, // unlimited-ish
     graphics: 12,
     socialPosts: 12,
-    outreachEmails: 2000,
+    outreachEmails: 5000,
     newsletters: 4,
     miniPlan: false,
   },
   scale: {
     name: 'Scale',
-    price: 1500,
-    marketingPlans: 1,
+    price: 249,
+    marketingPlans: 60, // unlimited-ish
     graphics: 30,
     socialPosts: 30,
-    outreachEmails: 5000,
+    outreachEmails: 25000,
     newsletters: 8,
     miniPlan: false,
   },
@@ -105,10 +105,13 @@ export function canGenerate(
 
 export function getPlanUpgradeMessage(plan: PlanType, feature: string): string {
   if (plan === 'free') {
-    return 'Start your $10 trial to unlock this feature and see what Kulve can do for your business.';
+    return 'Start your 7-day free trial to unlock this feature and see what Kulvé can do for your business.';
   }
   if (plan === 'trial') {
-    return `You've used your trial ${feature}. Upgrade to Starter ($250/mo) to unlock more.`;
+    return `You've used your trial ${feature}. Upgrade to Basic ($10/mo) to keep going.`;
+  }
+  if (plan === 'basic') {
+    return `You've hit your Basic plan ${feature} limit. Upgrade to Operator ($89/mo) for 25× more.`;
   }
   return `You've hit your monthly ${feature} limit. Upgrade your plan to get more.`;
 }

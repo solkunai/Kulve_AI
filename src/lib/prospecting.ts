@@ -1,8 +1,26 @@
 import { generateContent } from './ai';
+import { supabase } from './supabase';
 
-const GOOGLE_PLACES_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
-const APOLLO_API_KEY = import.meta.env.VITE_APOLLO_API_KEY;
-const SERPER_API_KEY = import.meta.env.VITE_SERPER_API_KEY;
+// All third-party API calls (Google Places, Apollo, Serper) go through our
+// own /api/leads/* endpoints — keys never touch the browser.
+async function authedJson<T>(url: string, body: unknown): Promise<T | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) return null;
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) return null;
+    return (await r.json()) as T;
+  } catch {
+    return null;
+  }
+}
 
 // --- Types ---
 
@@ -37,49 +55,23 @@ interface PlaceResult {
 // --- Google Places API (New) ---
 
 async function searchPlaces(query: string, pageToken?: string): Promise<{ places: PlaceResult[]; nextPageToken?: string }> {
-  if (!GOOGLE_PLACES_KEY) return { places: [] };
+  const data = await authedJson<{ places?: any[]; nextPageToken?: string }>(
+    '/api/leads/places-search',
+    { query, pageToken }
+  );
+  if (!data) return { places: [] };
 
-  const body: any = {
-    textQuery: query,
-    pageSize: 20,
-    languageCode: 'en',
-    regionCode: 'us',
-  };
-  if (pageToken) body.pageToken = pageToken;
+  const places: PlaceResult[] = (data.places || []).map((p: any) => ({
+    name: p.displayName?.text || '',
+    address: p.formattedAddress || '',
+    phone: p.nationalPhoneNumber || undefined,
+    website: p.websiteUri || undefined,
+    rating: p.rating || undefined,
+    types: p.types || [],
+    googleMapsUrl: p.googleMapsUri || undefined,
+  }));
 
-  try {
-    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_PLACES_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.types,places.googleMapsUri,nextPageToken',
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      console.error('Google Places error:', response.status, await response.text());
-      return { places: [] };
-    }
-
-    const data = await response.json();
-
-    const places: PlaceResult[] = (data.places || []).map((p: any) => ({
-      name: p.displayName?.text || '',
-      address: p.formattedAddress || '',
-      phone: p.nationalPhoneNumber || undefined,
-      website: p.websiteUri || undefined,
-      rating: p.rating || undefined,
-      types: p.types || [],
-      googleMapsUrl: p.googleMapsUri || undefined,
-    }));
-
-    return { places, nextPageToken: data.nextPageToken };
-  } catch (err) {
-    console.error('Google Places search failed:', err);
-    return { places: [] };
-  }
+  return { places, nextPageToken: data.nextPageToken };
 }
 
 /**
@@ -105,44 +97,23 @@ async function searchAllPlaces(query: string, maxPages: number = 3): Promise<Pla
 // --- Apollo.io — find decision-maker emails ---
 
 async function findEmailViaApollo(domain: string): Promise<{ email?: string; name?: string; title?: string } | null> {
-  if (!APOLLO_API_KEY || !domain) return null;
+  if (!domain) return null;
+  const data = await authedJson<{ people?: any[] }>(
+    '/api/leads/apollo-find-email',
+    { domain }
+  );
+  if (!data) return null;
 
-  try {
-    const response = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': APOLLO_API_KEY,
-      },
-      body: JSON.stringify({
-        q_organization_domains: domain,
-        person_seniorities: ['owner', 'founder', 'c_suite', 'partner', 'vp', 'director', 'manager'],
-        per_page: 3,
-        page: 1,
-      }),
-    });
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    const people = data.people || [];
-
-    // Find someone with a verified email
-    const withEmail = people.find((p: any) => p.email && p.email_status === 'verified');
-    if (withEmail) {
-      return { email: withEmail.email, name: withEmail.name, title: withEmail.title };
-    }
-
-    // Fall back to any email
-    const anyEmail = people.find((p: any) => p.email);
-    if (anyEmail) {
-      return { email: anyEmail.email, name: anyEmail.name, title: anyEmail.title };
-    }
-
-    return null;
-  } catch {
-    return null;
+  const people = data.people || [];
+  const withEmail = people.find((p: any) => p.email && p.email_status === 'verified');
+  if (withEmail) {
+    return { email: withEmail.email, name: withEmail.name, title: withEmail.title };
   }
+  const anyEmail = people.find((p: any) => p.email);
+  if (anyEmail) {
+    return { email: anyEmail.email, name: anyEmail.name, title: anyEmail.title };
+  }
+  return null;
 }
 
 // --- Serper fallback — scrape email from website ---
@@ -150,29 +121,24 @@ async function findEmailViaApollo(domain: string): Promise<{ email?: string; nam
 async function findEmailViaSerper(websiteUrl?: string): Promise<string | null> {
   // Only search the business's own website — never do generic name searches
   // which return wrong emails from unrelated businesses
-  if (!SERPER_API_KEY || !websiteUrl) return null;
+  if (!websiteUrl) return null;
 
   const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
   const junk = ['example.com', 'email.com', 'domain.com', 'sentry.io', 'wixpress.com', 'googleapis.com', 'w3.org', 'schema.org', 'gravatar.com', 'wordpress.org', 'facebook.com', 'twitter.com', 'instagram.com'];
 
   try {
     const domain = new URL(websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`).hostname;
-    const response = await fetch('https://google.serper.dev/search', {
-      method: 'POST',
-      headers: { 'X-API-KEY': SERPER_API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ q: `site:${domain} contact email`, num: 5 }),
-    });
+    const data = await authedJson<{ organic?: any[] }>(
+      '/api/leads/serper-search',
+      { q: `site:${domain} contact email`, num: 5 }
+    );
+    if (!data) return null;
 
-    if (!response.ok) return null;
-
-    const data = await response.json();
     const allText = (data.organic || []).map((r: any) => r.snippet || '').join(' ');
     const found = allText.match(emailRegex) || [];
     const valid = found.filter((e: string) => {
-      // Only accept emails from the business's own domain
-      if (junk.some(j => e.includes(j))) return false;
+      if (junk.some((j) => e.includes(j))) return false;
       if (e.includes(domain.replace('www.', ''))) return true;
-      // Accept common prefixes even if different domain (e.g. gmail for small businesses)
       if (e.startsWith('contact') || e.startsWith('info') || e.startsWith('hello') || e.startsWith('office')) return true;
       return false;
     });

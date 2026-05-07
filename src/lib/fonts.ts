@@ -1,10 +1,8 @@
-// Google Fonts integration — full catalog with search, preview, and loading
+// Google Fonts integration — uses the curated catalog only.
+// (We don't ship the Google Fonts API key to the client. If we ever need the
+// full live catalog, add a server-side /api/fonts/list proxy.)
 
-const GOOGLE_FONTS_API = 'https://www.googleapis.com/webfonts/v1/webfonts';
 const GOOGLE_FONTS_CSS = 'https://fonts.googleapis.com/css2';
-
-// Cache for the font list
-let fontCache: GoogleFont[] | null = null;
 
 export interface GoogleFont {
   family: string;
@@ -13,35 +11,11 @@ export interface GoogleFont {
   subsets: string[];
 }
 
-/**
- * Fetch the full Google Fonts catalog.
- * Uses the API key if available, otherwise falls back to a curated list.
- */
+let fontCache: GoogleFont[] | null = null;
+
+/** Returns the curated Google Fonts catalog (~200 popular families). */
 export async function getGoogleFonts(): Promise<GoogleFont[]> {
-  if (fontCache) return fontCache;
-
-  const apiKey = import.meta.env.VITE_GOOGLE_FONTS_API_KEY;
-
-  if (apiKey) {
-    try {
-      const response = await fetch(`${GOOGLE_FONTS_API}?key=${apiKey}&sort=popularity`);
-      if (response.ok) {
-        const data = await response.json();
-        fontCache = data.items.map((f: any) => ({
-          family: f.family,
-          category: f.category,
-          variants: f.variants,
-          subsets: f.subsets,
-        }));
-        return fontCache!;
-      }
-    } catch (err) {
-      console.warn('Google Fonts API failed, using curated list:', err);
-    }
-  }
-
-  // Fallback: comprehensive curated list organized by category
-  fontCache = CURATED_FONTS;
+  if (!fontCache) fontCache = CURATED_FONTS;
   return fontCache;
 }
 

@@ -1,12 +1,23 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Zap, Image, Send, Mail, Globe, FileText, Printer } from 'lucide-react';
+import { FileText, Image, Send, Mail, Globe, Printer } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { BS, Eyebrow, monoFont } from '../lib/bs-design';
+import { KulveLogo } from '../components/KulveLogo';
+
+const features = [
+  { icon: FileText, title: 'AI Marketing Plans', desc: 'Monthly strategy tailored to your business' },
+  { icon: Image, title: 'Branded Graphics', desc: 'Social posts, flyers, business cards — all on-brand' },
+  { icon: Send, title: 'Automated Outreach', desc: 'Personalized cold emails sent on autopilot' },
+  { icon: Mail, title: 'Newsletters', desc: 'Beautiful email campaigns in minutes' },
+  { icon: Globe, title: 'Website Builder', desc: 'Full business website from your brand kit' },
+  { icon: Printer, title: 'Print Materials', desc: 'Flyers, business cards, pitch decks' },
+];
 
 export default function ComingSoon() {
-  const { signOut } = useAuth();
-  const [email, setEmail] = useState('');
+  const { signOut, user } = useAuth();
+  const [email, setEmail] = useState(user?.email ?? '');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -36,89 +47,142 @@ export default function ComingSoon() {
     setLoading(false);
   };
 
-  const features = [
-    { icon: FileText, title: 'AI Marketing Plans', desc: 'Monthly strategy tailored to your business' },
-    { icon: Image, title: 'Branded Graphics', desc: 'Social posts, flyers, business cards — all on-brand' },
-    { icon: Send, title: 'Automated Outreach', desc: 'Personalized cold emails sent on autopilot' },
-    { icon: Mail, title: 'Newsletters', desc: 'Beautiful email campaigns in minutes' },
-    { icon: Globe, title: 'Website Builder', desc: 'Full business website from your brand kit' },
-    { icon: Printer, title: 'Print Materials', desc: 'Flyers, business cards, pitch decks' },
-  ];
-
   return (
-    <div className="min-h-screen bg-white">
-      {/* Nav */}
-      <nav className="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-brand-blue rounded-lg flex items-center justify-center">
-            <span className="font-bold text-xl text-white">K</span>
-          </div>
-          <span className="text-2xl font-bold tracking-tight text-brand-navy">Kulvé</span>
-        </Link>
-        <button onClick={() => signOut()} className="text-sm text-gray-500 hover:text-gray-700">Sign Out</button>
-      </nav>
-
-      <div className="max-w-2xl mx-auto px-4 py-20 text-center">
-        {/* Coming Soon badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-blue/10 text-brand-blue rounded-full text-sm font-semibold mb-8">
-          <Zap className="w-4 h-4" /> Coming Soon
+    <div className="min-h-screen flex flex-col" style={{ background: BS.paper, color: BS.text }}>
+      {/* Top utility bar */}
+      <div
+        className="hidden md:flex justify-between items-center text-xs"
+        style={{ background: BS.ink, color: '#C8CEDC', padding: '7px 56px' }}
+      >
+        <span>Now in private beta · invitations sent weekly</span>
+        <div className="flex gap-[18px]">
+          <a href="#" className="hover:text-white transition-colors">Status</a>
+          <a href="#" className="hover:text-white transition-colors">Changelog</a>
+          <a href="#" className="hover:text-white transition-colors">Docs</a>
         </div>
+      </div>
 
-        <h1 className="text-4xl lg:text-5xl font-bold text-brand-navy leading-tight">
-          Your entire marketing team — powered by AI
-        </h1>
-        <p className="mt-6 text-lg text-gray-600 max-w-lg mx-auto leading-relaxed">
-          Kulvé is almost ready. We're building the most powerful AI marketing platform for businesses of all kinds. Be the first to access it.
-        </p>
+      {/* Nav */}
+      <header
+        className="flex items-center justify-between px-6 md:px-14 py-4"
+        style={{ borderBottom: `1px solid ${BS.border}`, background: BS.paper }}
+      >
+        <Link to="/">
+          <KulveLogo />
+        </Link>
+        <button
+          onClick={() => signOut()}
+          className="text-sm font-medium hover:opacity-70 transition-opacity"
+          style={{ color: BS.muted }}
+        >
+          Sign out
+        </button>
+      </header>
 
-        {/* Waitlist */}
-        <div className="mt-10 max-w-md mx-auto">
-          {!submitted ? (
-            <div className="space-y-3">
-              {error && <p className="text-sm text-red-600">{error}</p>}
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@business.com"
-                  className="flex-1 px-4 py-3 rounded-lg border border-gray-200 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 outline-none"
-                />
-                <button
-                  onClick={handleWaitlist}
-                  disabled={loading}
-                  className="px-6 py-3 bg-brand-blue text-white rounded-lg font-semibold hover:bg-brand-blue/90 transition-colors disabled:opacity-50 shrink-0"
+      {/* Hero */}
+      <section className="flex-1 px-6 md:px-14 pt-16 pb-10 max-w-[1100px] mx-auto w-full">
+        <div className="text-center max-w-2xl mx-auto">
+          <Eyebrow>YOU'RE IN — JUST NOT YET</Eyebrow>
+          <h1
+            className="text-4xl md:text-5xl lg:text-[60px] font-semibold mt-4 mb-4 leading-[1.05]"
+            style={{ letterSpacing: '-0.03em' }}
+          >
+            Kulvé is rolling out in <span style={{ color: BS.accent }}>small waves.</span>
+          </h1>
+          <p className="text-base md:text-[17px] leading-relaxed" style={{ color: BS.muted }}>
+            Public access is paused while we onboard founders one at a time. We'll email you the moment it's your turn — usually within a couple of weeks.
+          </p>
+
+          {/* Waitlist form */}
+          <div className="mt-8 max-w-xl mx-auto">
+            {!submitted ? (
+              <>
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleWaitlist()}
+                    placeholder="work@company.com"
+                    className="flex-1 px-3.5 py-3 rounded-md text-sm outline-none focus:ring-2"
+                    style={{ border: `1px solid ${BS.border}`, background: 'white', color: BS.text }}
+                  />
+                  <button
+                    onClick={handleWaitlist}
+                    disabled={loading}
+                    className="px-5 py-3 rounded-md text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 whitespace-nowrap"
+                    style={{ background: BS.accent, color: 'white' }}
+                  >
+                    {loading ? 'Adding…' : 'Save my spot'}
+                  </button>
+                </div>
+                {error && (
+                  <div className="text-xs mt-2" style={{ color: '#A52327' }}>{error}</div>
+                )}
+                <p
+                  className="mt-3 text-[11px]"
+                  style={{ color: BS.faint, fontFamily: monoFont, letterSpacing: '0.04em' }}
                 >
-                  {loading ? 'Joining...' : 'Join Waitlist'}
-                </button>
+                  EARLY ACCESS · FOUNDER PRICING LOCKED FOR LIFE
+                </p>
+              </>
+            ) : (
+              <div
+                className="rounded-xl p-6 text-center"
+                style={{ background: BS.accentSoft, border: `1px solid #B8E5EE`, color: BS.accentInk }}
+              >
+                <div className="text-3xl mb-2">✓</div>
+                <div className="font-semibold">You're on the list.</div>
+                <div className="text-sm mt-1" style={{ color: BS.muted }}>
+                  We'll email you the moment access opens up.
+                </div>
               </div>
-              <p className="text-xs text-gray-400">Join the waitlist for early access + exclusive launch discount</p>
-            </div>
-          ) : (
-            <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Check className="w-5 h-5 text-green-600" />
-              </div>
-              <h3 className="font-bold text-green-800">You're on the list!</h3>
-              <p className="text-sm text-green-600 mt-1">We'll email you as soon as Kulvé launches.</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Feature preview */}
         <div className="mt-20">
-          <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-8">What's Coming</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+          <div
+            className="text-xs font-semibold uppercase mb-7 text-center"
+            style={{ color: BS.faint, letterSpacing: '0.12em', fontFamily: monoFont }}
+          >
+            WHAT'S COMING IN BOX ONE
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
             {features.map((f, i) => (
-              <div key={i} className="p-5 rounded-xl bg-gray-50 text-left">
-                <f.icon className="w-6 h-6 text-brand-blue mb-3" />
-                <h3 className="font-bold text-gray-900 text-sm">{f.title}</h3>
-                <p className="text-xs text-gray-500 mt-1">{f.desc}</p>
+              <div
+                key={i}
+                className="p-5 rounded-xl"
+                style={{ background: BS.softer, border: `1px solid ${BS.border}` }}
+              >
+                <f.icon className="w-5 h-5 mb-3" style={{ color: BS.accent }} strokeWidth={1.8} />
+                <h3 className="font-semibold text-sm" style={{ letterSpacing: '-0.01em' }}>
+                  {f.title}
+                </h3>
+                <p className="text-xs mt-1.5 leading-relaxed" style={{ color: BS.muted }}>
+                  {f.desc}
+                </p>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Footer */}
+      <footer
+        className="px-6 md:px-14 py-6 mt-10"
+        style={{ background: BS.ink, color: 'rgba(255,255,255,0.4)' }}
+      >
+        <div className="max-w-[1100px] mx-auto flex flex-col md:flex-row justify-between items-center gap-3 text-xs">
+          <p>© 2026 Kulvé. All rights reserved.</p>
+          <div className="flex gap-6">
+            <a href="#" className="hover:text-white transition-colors">Status</a>
+            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white transition-colors">Terms</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

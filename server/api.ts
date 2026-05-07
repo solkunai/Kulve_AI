@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import Stripe from 'stripe';
 import { Resend } from 'resend';
+import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
@@ -12,7 +13,12 @@ dotenv.config();
 
 const app = express();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-const resend = new Resend(process.env.VITE_RESEND_API_KEY || '');
+// Resend key — accept both names while migrating away from VITE_ prefix.
+const resend = new Resend(process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY || '');
+// Anthropic — server-only.
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY || '',
+});
 
 // Supabase admin client (bypasses RLS)
 const supabaseAdmin = createClient(
@@ -293,6 +299,136 @@ app.post('/api/send-email', async (req, res) => {
 });
 
 // ============================================================
+// AI GENERATION (Anthropic) — proxy keeps API key off the client
+// ============================================================
+app.post('/api/ai/generate', authenticateUser, async (req, res) => {
+  const { prompt, systemPrompt } = req.body ?? {};
+  if (!prompt || typeof prompt !== 'string') {
+    return res.status(400).json({ error: 'Missing prompt' });
+  }
+
+  try {
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      system:
+        typeof systemPrompt === 'string' && systemPrompt.length > 0
+          ? systemPrompt
+          : 'You are a marketing expert helping local businesses create compelling content.',
+      messages: [{ role: 'user', content: prompt }],
+    });
+    const block = message.content[0];
+    const text = block && block.type === 'text' ? block.text : '';
+    res.json({ text });
+  } catch (err: any) {
+    console.error('AI generate error:', err?.message || err);
+    res.status(500).json({ error: err?.message || 'AI generation failed' });
+  }
+});
+
+// ============================================================
+// LEAD-GEN PROXIES — Google Places, Apollo, Serper
+// All require auth so unauth'd visitors can't drain paid API quotas.
+// ============================================================
+
+// Google Places (text search)
+app.post('/api/leads/places-search', authenticateUser, async (req, res) => {
+  const { query, pageToken } = req.body ?? {};
+  const key = process.env.GOOGLE_PLACES_API_KEY || process.env.VITE_GOOGLE_PLACES_API_KEY;
+  if (!key) return res.status(503).json({ error: 'Google Places not configured' });
+  if (!query) return res.status(400).json({ error: 'Missing query' });
+
+  try {
+    const body: Record<string, unknown> = {
+      textQuery: query,
+      pageSize: 20,
+      languageCode: 'en',
+      regionCode: 'us',
+    };
+    if (pageToken) body.pageToken = pageToken;
+
+    const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': key,
+        'X-Goog-FieldMask':
+          'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.types,places.googleMapsUri,nextPageToken',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+      const text = await r.text();
+      console.error('Google Places error:', r.status, text);
+      return res.status(r.status).json({ error: 'Places API error' });
+    }
+    res.json(await r.json());
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Places lookup failed' });
+  }
+});
+
+// Apollo — find decision-maker emails by domain
+app.post('/api/leads/apollo-find-email', authenticateUser, async (req, res) => {
+  const { domain } = req.body ?? {};
+  const key = process.env.APOLLO_API_KEY || process.env.VITE_APOLLO_API_KEY;
+  if (!key) return res.status(503).json({ error: 'Apollo not configured' });
+  if (!domain) return res.status(400).json({ error: 'Missing domain' });
+
+  try {
+    const r = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key },
+      body: JSON.stringify({
+        q_organization_domains: domain,
+        person_seniorities: ['owner', 'founder', 'c_suite', 'partner', 'vp', 'director', 'manager'],
+        per_page: 3,
+        page: 1,
+      }),
+    });
+    if (!r.ok) return res.json({ people: [] });
+    res.json(await r.json());
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Apollo lookup failed' });
+  }
+});
+
+// Serper — Google search proxy (used to scrape contact emails from a site)
+app.post('/api/leads/serper-search', authenticateUser, async (req, res) => {
+  const { q, num } = req.body ?? {};
+  const key = process.env.SERPER_API_KEY || process.env.VITE_SERPER_API_KEY;
+  if (!key) return res.status(503).json({ error: 'Serper not configured' });
+  if (!q) return res.status(400).json({ error: 'Missing query' });
+
+  try {
+    const r = await fetch('https://google.serper.dev/search', {
+      method: 'POST',
+      headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q, num: num || 5 }),
+    });
+    if (!r.ok) return res.json({ organic: [] });
+    res.json(await r.json());
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Serper search failed' });
+  }
+});
+
+// ============================================================
+// ADMIN AUTH — server-side password check (no leak to client)
+// ============================================================
+app.post('/api/admin/auth', (req, res) => {
+  const { password } = req.body ?? {};
+  const expected = process.env.ADMIN_PASSWORD || process.env.VITE_ADMIN_PASSWORD || '';
+  if (!expected) {
+    return res.status(503).json({ ok: false, error: 'Admin not configured' });
+  }
+  if (typeof password !== 'string' || password !== expected) {
+    return res.status(401).json({ ok: false, error: 'Wrong password' });
+  }
+  res.json({ ok: true });
+});
+
+// ============================================================
 // HEALTH CHECK (for uptime monitoring + keep-alive)
 // ============================================================
 app.get('/api/health', (_req, res) => {
@@ -316,8 +452,11 @@ app.get('*', (_req, res) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Kulvé API running on http://localhost:${PORT}`);
+  const hasResend = !!(process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY);
+  const hasAnthropic = !!(process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY);
   console.log(`  - Stripe: ${process.env.STRIPE_SECRET_KEY ? '✓ configured' : '✗ missing key'}`);
-  console.log(`  - Resend: ${process.env.VITE_RESEND_API_KEY ? '✓ configured' : '✗ missing key'}`);
+  console.log(`  - Resend: ${hasResend ? '✓ configured' : '✗ missing key'}`);
+  console.log(`  - Anthropic: ${hasAnthropic ? '✓ configured' : '✗ missing key'}`);
   console.log(`  - Supabase: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? '✓ configured' : '✗ missing key'}`);
 
   // Keep-alive: ping ourselves every 14 minutes to prevent cold starts on free tier

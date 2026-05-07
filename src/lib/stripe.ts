@@ -11,11 +11,15 @@ async function getAuthToken(): Promise<string> {
 
 /**
  * Fetch Stripe price IDs from the server.
+ *
+ * NOTE: Server-side env vars in /server/api.ts should be renamed to match the
+ * new tier names (STRIPE_PRICE_BASIC, STRIPE_PRICE_OPERATOR, STRIPE_PRICE_SCALE)
+ * before flipping WAITLIST_MODE off and accepting payments.
  */
 export async function getStripePrices(): Promise<{
   trial: string;
-  starter: string;
-  growth: string;
+  basic: string;
+  operator: string;
   scale: string;
   brandKit: string;
 }> {
@@ -78,7 +82,7 @@ export async function openCustomerPortal(): Promise<void> {
 /**
  * Subscribe to a plan.
  */
-export async function subscribeToPlan(plan: 'trial' | 'starter' | 'growth' | 'scale'): Promise<void> {
+export async function subscribeToPlan(plan: 'trial' | 'basic' | 'operator' | 'scale'): Promise<void> {
   const prices = await getStripePrices();
   const priceId = prices[plan];
   if (!priceId) throw new Error(`Unknown plan: ${plan}`);

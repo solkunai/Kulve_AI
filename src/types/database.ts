@@ -7,7 +7,7 @@ export interface Database {
           email: string;
           full_name: string | null;
           business_name: string | null;
-          plan: 'starter' | 'growth' | 'scale' | null;
+          plan: 'trial' | 'basic' | 'operator' | 'scale' | null;
           created_at: string;
           updated_at: string;
         };
@@ -16,7 +16,7 @@ export interface Database {
           email: string;
           full_name?: string | null;
           business_name?: string | null;
-          plan?: 'starter' | 'growth' | 'scale' | null;
+          plan?: 'trial' | 'basic' | 'operator' | 'scale' | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -25,7 +25,7 @@ export interface Database {
           email?: string;
           full_name?: string | null;
           business_name?: string | null;
-          plan?: 'starter' | 'growth' | 'scale' | null;
+          plan?: 'trial' | 'basic' | 'operator' | 'scale' | null;
           updated_at?: string;
         };
       };

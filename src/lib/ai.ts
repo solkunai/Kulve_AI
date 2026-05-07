@@ -1,23 +1,28 @@
-import Anthropic from '@anthropic-ai/sdk';
+// AI generation — client calls our own server (/api/ai/generate).
+// The Anthropic API key never touches the browser.
 
-const anthropic = new Anthropic({
-  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
-  dangerouslyAllowBrowser: true, // Will move to backend in production
-});
+import { supabase } from './supabase';
 
 export async function generateContent(prompt: string, systemPrompt?: string): Promise<string> {
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 4096,
-    system: systemPrompt || 'You are a marketing expert helping local businesses create compelling content.',
-    messages: [{ role: 'user', content: prompt }],
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    throw new Error('Not signed in');
+  }
+
+  const res = await fetch('/api/ai/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ prompt, systemPrompt }),
   });
 
-  const block = message.content[0];
-  if (block.type === 'text') {
-    return block.text;
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error || `AI generation failed (${res.status})`);
   }
-  return '';
-}
 
-export { anthropic };
+  const data = (await res.json()) as { text?: string };
+  return data.text || '';
+}

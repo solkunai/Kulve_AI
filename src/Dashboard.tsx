@@ -419,7 +419,7 @@ const SettingsPage = () => {
     setSaving(false);
   };
 
-  const planPrice: Record<string, string> = { starter: '$250', growth: '$500', scale: '$1,500' };
+  const planPrice: Record<string, string> = { trial: 'Free trial', basic: '$10', operator: '$89', scale: '$249' };
 
   return (
     <div className="max-w-4xl space-y-8">
@@ -472,7 +472,7 @@ const SettingsPage = () => {
               <p className="text-gray-500">No active plan. Choose a plan to unlock all features.</p>
               <Button onClick={async () => {
                 const { subscribeToPlan } = await import('./lib/stripe');
-                subscribeToPlan('starter').catch(err => console.error('Checkout error:', err));
+                subscribeToPlan('basic').catch(err => console.error('Checkout error:', err));
               }}>Subscribe Now</Button>
             </div>
           )}
