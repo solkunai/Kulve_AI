@@ -248,7 +248,7 @@ export default function Home({ onLogin }: { onLogin: () => void }) {
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]" style={{ color: C.faint }}>
             <span>Built for founders + marketers</span>
             <span className="hidden sm:inline">·</span>
-            <span>2,847 on the waitlist</span>
+            <span>Now in private beta</span>
             <span className="hidden sm:inline">·</span>
             <span>Founder pricing, locked</span>
           </div>
@@ -272,11 +272,8 @@ export default function Home({ onLogin }: { onLogin: () => void }) {
             className="text-xs font-semibold uppercase"
             style={{ color: C.faint, letterSpacing: '0.08em' }}
           >
-            Companies running on Kulvé · work shipped this month
+            Sample work · what Kulvé can ship for any business
           </div>
-          <a className="text-[13px] font-medium hidden sm:block" style={{ color: C.accent }}>
-            See the gallery →
-          </a>
         </div>
 
         <div className="kv-marquee-mask relative">
@@ -333,7 +330,7 @@ export default function Home({ onLogin }: { onLogin: () => void }) {
                     </span>
                     <div>
                       <div className="text-sm font-semibold leading-tight">{name}</div>
-                      <div className="text-[11px] mt-1 opacity-70">made on Kulvé</div>
+                      <div className="text-[11px] mt-1 opacity-70">sample output</div>
                     </div>
                   </div>
                 );

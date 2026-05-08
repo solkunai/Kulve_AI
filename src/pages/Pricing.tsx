@@ -83,7 +83,7 @@ export default function Pricing({ onLogin: _onLogin }: { onLogin: () => void }) 
     <div style={{ background: BS.paper, color: BS.text }}>
       {/* Hero */}
       <section className="px-6 md:px-14 pt-16 pb-7 max-w-[1440px] mx-auto text-center">
-        <Eyebrow>PRICING — FOUNDER COHORT · 2,847 ON THE LIST</Eyebrow>
+        <Eyebrow>PRICING — FOUNDER COHORT · INVITE-ONLY BETA</Eyebrow>
         <h1
           className="text-4xl md:text-5xl lg:text-[64px] font-semibold mt-5 mb-4 leading-[1.02] max-w-4xl mx-auto"
           style={{ letterSpacing: '-0.035em', color: BS.text }}
