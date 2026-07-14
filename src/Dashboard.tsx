@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
+  Gauge,
   Palette,
   Image as ImageIcon,
   Send,
@@ -32,7 +33,8 @@ import {
   Twitter,
   Sparkles,
   Gift,
-  Zap
+  Zap,
+  ClipboardList
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -60,6 +62,8 @@ import PlansPage from './pages/dashboard/Plans';
 import WebsiteBuilder from './pages/dashboard/WebsiteBuilder';
 import BrandKitPageReal from './pages/BrandKit';
 import FlyersAndCards from './pages/dashboard/FlyersAndCards';
+import Cockpit from './pages/dashboard/Cockpit';
+import Trackers from './pages/dashboard/Trackers';
 
 // --- Components ---
 
@@ -514,6 +518,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard },
+    { name: 'Cockpit', icon: Gauge },
+    { name: 'Trackers', icon: ClipboardList },
     { name: 'Marketing Plan', icon: Megaphone },
     { name: 'Social Media', icon: ImageIcon },
     { name: 'Outreach', icon: Send },
@@ -530,6 +536,8 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const renderContent = () => {
     switch (activeTab) {
       case 'Dashboard': return <DashboardHome businessName={businessName} onNavigate={setActiveTab} />;
+      case 'Cockpit': return <Cockpit />;
+      case 'Trackers': return <Trackers />;
       case 'Marketing Plan': return <MarketingPlan />;
       case 'Social Media': return <SocialContent />;
       case 'Outreach': return <OutreachContent />;
